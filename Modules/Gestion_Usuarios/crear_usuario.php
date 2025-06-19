@@ -106,8 +106,12 @@ include "../../Config/conexion.php";
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ correo_usuario: email })
         })
-        .then(res => res.json())
+        .then(res => {
+            console.log('Respuesta fetch:', res);
+            return res.json();
+        })
         .then(data => {
+            console.log('JSON recibido:', data);
             if (data.success) {
                 // Si el correo es válido, envía el formulario
                 event.target.submit();
@@ -136,11 +140,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $estado = $_POST["estado"];
         $tipo_usuario = $_POST["tipo_usuario"];
 
-        // Hash de la contraseña
-        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $connection->prepare("INSERT INTO usuario (email, estado, tipo_usuario) VALUES (?, ?, ?)");
+        $stmt->bind_param("sss", $email, $estado, $tipo_usuario);
 
-        $sql = mysqli_query($connection, "INSERT INTO usuario (email, estado, tipo_usuario) VALUES ('$email', '$estado', '$tipo_usuario')");
-        if ($sql) {
+        if ($stmt->execute()) {
             echo "<script>
                 window.onload = function() {
                     document.getElementById('overlay').style.display = 'flex';
@@ -149,6 +152,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             echo "No se creó el usuario";
         }
+        $stmt->close();
     }
 }
 ?>
@@ -161,7 +165,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <path class="checkmark-check" fill="none" stroke="#BBCD5D" stroke-width="5"
                 d="M14.1 27.2l7.1 7.2 16.7-16.8" />
         </svg>
-        <p>¡Usuario creado exitosamente!</p>
+        <p>Se te envió un correo para validar tu email.</p>
         <button class="btn-primary" onclick="closePopup()">Aceptar</button>
     </div>
 </div>

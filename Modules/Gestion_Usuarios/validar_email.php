@@ -20,8 +20,9 @@ if (!isset($data['correo_usuario']) || empty($data['correo_usuario'])) {
 
 $correo = $data['correo_usuario'];
 
-// Verifica si el correo existe
-$sql = "SELECT id_usuario FROM usuario WHERE email = ?";
+
+// Busca el tipo de usuario
+$sql = "SELECT id_usuario, tipo_usuario FROM usuario WHERE email = ?";
 $stmt = $connection->prepare($sql);
 $stmt->bind_param("s", $correo);
 $stmt->execute();
@@ -35,17 +36,20 @@ if ($result->num_rows <= 0) {
     exit;
 }
 
+$row = $result->fetch_assoc();
+$tipo_usuario = $row['tipo_usuario'];
+
 // Genera un token único
 $token = bin2hex(random_bytes(32));
 
-// Guarda el token en la base de datos (puedes crear un campo 'token_validacion' en la tabla usuario)
+// Guarda el token en la base de datos
 $updateSql = "UPDATE usuario SET token_validacion = ? WHERE email = ?";
 $updateStmt = $connection->prepare($updateSql);
 $updateStmt->bind_param("ss", $token, $correo);
 $updateStmt->execute();
 
 // Crea el enlace de validación
-$enlace = "http://localhost/Agora/Templates/confirmar_email.php?token=$token";
+$enlace = "http://localhost/Agora/Modules/Gestion_Usuarios/datos_usuario.php?token=$token&email=" . urlencode($correo) . "&tipo_usuario=" . urlencode($tipo_usuario);
 
 // Envía el correo
 $mail = new PHPMailer(true);
@@ -74,7 +78,7 @@ try {
             <p style="color: #34495E; font-size: 16px; line-height: 1.6;">Hola,</p>
             <p style="color: #34495E; font-size: 16px; line-height: 1.6;">Haz clic en el siguiente botón para validar tu correo electrónico:</p>
             <div style="text-align: center; margin: 25px 0;">
-                <a href="'.$enlace.'" style="background: #BBCD5D; color: #2C3E2F; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 18px;">Validar mi correo</a>
+                <a href="'.$enlace.'" style="background: #BBCD5D; color: #2C3E2F; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 18px;">Validar correo</a>
             </div>
             <p style="color: #34495E; font-size: 14px;">Si no solicitaste este registro, puedes ignorar este correo.</p>
             <div style="border-top: 1px solid #E5E7E9; margin-top: 30px; padding-top: 20px;">
@@ -82,7 +86,7 @@ try {
             </div>
         </div>
     </div>';
-    $mail->AltBody = "Valida tu correo en este enlace: $enlace";
+    $mail->AltBody = "Valida tu correo dando clic en este enlace: $enlace";
 
     $mail->addEmbeddedImage('../../Assets/Images/LogoTrans.png', 'logo');
 
